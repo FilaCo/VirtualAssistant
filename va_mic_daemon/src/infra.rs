@@ -6,12 +6,14 @@ use tokio::sync::mpsc;
 use tokio_stream::Stream;
 use va_lib::VAResult;
 
+use crate::domain::entity::AudioChunk;
+
 use self::vo::DeviceName;
 
-pub fn get_cpal_mic_input_stream(
+pub fn get_cpal_mic_input_stream<T: Clone>(
     dev_name: &DeviceName,
     conf: &SupportedStreamConfig,
-) -> VAResult<impl Stream<Item = ()>> {
+) -> VAResult<impl Stream<Item = AudioChunk<T>>> {
     let host = cpal::default_host(); // TODO: from config
 
     let mic_dev = if "default" == dev_name.as_str() {
@@ -21,12 +23,13 @@ pub fn get_cpal_mic_input_stream(
         // host.default_input_device().expect("wtf") // TODO: bubble up the error
     };
 
+    let (tx, rx) = mpsc::channel(1);
+
     let stream = mic_dev
         .build_input_stream(&(*conf).into(), data_callback, error_callback, timeout)
         .expect("wtf"); // TODO: bubble up the error
 
     stream.play();
-    let (tx, rx) = mpsc::channel(1);
 
     todo!()
 }
